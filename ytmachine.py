@@ -1,6 +1,4 @@
 import time
-from threading import Event
-import signal
 import ujson as json
 
 import pafy
@@ -13,6 +11,16 @@ class LiveStreamPlayer:
 		self.state = 3 # 0 - stopped, 1 - playing, 2 - paused
 		self.player = None
 		self.Instance = None
+
+	def update_permanent_url(self, url:str):
+		try:
+			data = self.read_json("data.json")
+			data["permanent_url"] = url
+			self.write_json(data, "data.json")
+			return True
+		except Exception as e:
+			print(e)
+			return False
 
 	def get_video_stream(self):
 		try:
@@ -73,10 +81,14 @@ class LiveStreamPlayer:
 		self.player.pause()
 
 	def play(self):
+		ready = True
 		if self.state == 0:
-			playurl = self.reload_video()
-		self.state = 1
-		self.player.play()
+			ready = self.reload_video()
+		if ready:
+			self.state = 1
+			self.player.play()
+		else:
+			print("Video couldn't be loaded.")
 
 	def stop(self):
 		self.state = 0
