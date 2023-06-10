@@ -14,9 +14,8 @@ class LiveStreamPlayer:
 		self.player = None
 		self.Instance = None
 
-	def prepare_video_data(self):
+	def get_video_stream(self):
 		try:
-			print("Reloading video...")
 			data = self.read_json("data.json")
 			url = False
 			if data["video_url"]:
@@ -48,6 +47,16 @@ class LiveStreamPlayer:
 					self.write_json(data, "data.json")
 					raise Exception("Channel not on Live!!!")
 
+			return playurl
+		except Exception as e:
+			print(e)
+			return False
+
+	def reload_video(self):
+		try:
+			print("Reloading video...")
+			playurl = self.get_video_stream()
+
 			if playurl:
 				Media = self.Instance.media_new(playurl)
 				Media.get_mrl()
@@ -65,7 +74,7 @@ class LiveStreamPlayer:
 
 	def play(self):
 		if self.state == 0:
-			playurl = self.prepare_video_data()
+			playurl = self.reload_video()
 		self.state = 1
 		self.player.play()
 
@@ -114,36 +123,7 @@ class LiveStreamPlayer:
 
 	def main(self) -> bool:
 		try:
-			data = self.read_json("data.json")
-			url = False
-			if data["video_url"]:
-				print("Found url")
-				url = data["video_url"]
-			else:
-				print("Not an URL")
-				print("Getting real url...")
-				url = self.get_video_id(data["permanent_url"])
-				if url:
-					data["video_url"] = url
-					self.write_json(data, "data.json")
-				else:
-					data["video_url"] = ""
-					self.write_json(data, "data.json")
-					raise Exception("Channel not on Live!!!")
-			print("URL found:", url)
-			print("Getting Best URL...")
-			playurl = self.get_video(url)
-			if not playurl:
-				print("Getting real url...")
-				url = self.get_video_id(data["permanent_url"])
-				if url:
-					data["video_url"] = url
-					self.write_json(data, "data.json")
-					playurl = self.get_video(url)
-				else:
-					data["video_url"] = ""
-					self.write_json(data, "data.json")
-					raise Exception("Channel not on Live!!!")
+			playurl = self.get_video_stream()
 
 			if playurl:
 				print("Best URL found!")
