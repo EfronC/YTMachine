@@ -2,10 +2,7 @@ version: '3.8'
 
 services:
   flask_app:
-    container_name: ytmachine
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: efraince/ytmachine:v1-release
     ports:
       - "5000:5000"
     volumes:

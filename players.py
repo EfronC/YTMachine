@@ -3,8 +3,6 @@ import json
 import requests
 from bs4 import BeautifulSoup
 import mpv
-import vlc
-import pafy
 
 class Player:
 	def __init__(self):
@@ -125,44 +123,3 @@ class MPVPlayer(Player, threading.Thread):
 	def main(self):
 		self.start()
 		return True
-
-class VLCPlayer(Player):
-	def __init__(self):
-		super().__init__()
-		self.Instance = vlc.Instance('--no-video')
-		self.player = self.Instance.media_player_new()
-
-	def reload_video(self):
-		try:
-			print("Reloading video...")
-			playurl = self.get_video_stream()
-			if playurl:
-				if not self.Instance:
-					self.Instance = vlc.Instance('--no-video')
-				Media = self.Instance.media_new(playurl)
-				if not self.player:
-					self.player = self.Instance.media_player_new()
-				self.player.set_media(Media)
-				print("Player ready!")
-				return True
-			return False
-		except Exception as e:
-			print(e)
-			return False
-
-	def pause(self):
-		self.state = 2
-		self.player.pause()
-
-	def play(self):
-		if self.state == 0:
-			if not self.reload_video():
-				print("Video couldn't be loaded.")
-				return
-		self.state = 1
-		self.player.play()
-
-	def stop(self):
-		self.state = 0
-		if self.player:
-			self.player.stop()
