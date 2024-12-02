@@ -39,9 +39,11 @@ def change_purl():
 
 @app.route('/shutdown')
 def shutdown():
-   print("Shutting down gracefully...")
-   os.kill(os.getpid(), signal.SIGINT)
-   return 'Server shutting down...'
+    print("Shutting down gracefully...")
+    if player.state != 0:
+        player.stop()
+    os.kill(os.getpid(), signal.SIGINT)
+    return 'Server shutting down...'
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, threaded=True)
+    app.run(host='0.0.0.0', port=5000, threaded=True)
