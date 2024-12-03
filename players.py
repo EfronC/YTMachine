@@ -90,6 +90,7 @@ class MPVPlayer(Player, threading.Thread):
 		self.video = video
 		self.player._set_property("volume", 100)
 		self.playing = True
+		self.muted = False
 
 	def run(self):
 		self.state = 1
@@ -157,6 +158,13 @@ class MPVPlayer(Player, threading.Thread):
 	def toggle_play(self):
 		self.playing = not self.playing
 		self.player.pause = not self.player.pause
+
+	def toggle_mute(self):
+		if self.muted:
+			self.player._set_property("volume", 100)
+		else:
+			self.player._set_property("volume", 0)
+		self.muted = not self.muted
 
 	def pause(self):
 		self.state = 2
