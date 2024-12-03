@@ -80,19 +80,46 @@ class Player:
 		raise NotImplementedError
 
 class MPVPlayer(Player, threading.Thread):
-	def __init__(self):
+	def __init__(self, mode=0, video="./songs/Minecraft_Sweden.mp3"):
 		super().__init__()
 		threading.Thread.__init__(self)
 		self.stopped = threading.Event()
 		self.player = mpv.MPV(video=False, ytdl=True)
 		self.url = self.get_video_stream()
+		self.mode = mode # 0 - Stream, 1 - Local
+		self.video = video
+		self.player._set_property("volume", 100)
+		self.playing = True
 
 	def run(self):
 		self.state = 1
-		self.player.play(self.url)
-		self.player.wait_for_playback()
+		if self.mode == 0:
+			self.player.play(self.url)
+			self.player.wait_for_playback()
+		else:
+			self.player.loop = True
+			self.player.play(self.video)
+			self.player.wait_until_playing()
 
-	def reload_video(self):
+	def change_mode(self, mode):
+		try:
+			self.mode = mode
+			self.reload_video()
+			return True
+		except Exception as e:
+			print(e)
+			return False
+
+	def change_video(self, video):
+		try:
+			self.video = video
+			self.reload_video()
+			return True
+		except Exception as e:
+			print(e)
+			return False
+
+	def reload_stream(self):
 		try:
 			print("Reloading video...")
 			playurl = self.get_video_stream()
@@ -105,6 +132,31 @@ class MPVPlayer(Player, threading.Thread):
 		except Exception as e:
 			print(e)
 			return False
+
+	def reload_local(self):
+		try:
+			self.player.loop = True
+			self.player.play(self.video)
+			self.player.wait_until_playing()
+			return True
+		except Exception as e:
+			print(e)
+			return False
+
+	def reload_video(self):
+		try:
+			print("Reloading video...")
+			if self.mode == 0:
+				return self.reload_stream()
+			else:
+				return self.reload_local()
+		except Exception as e:
+			print(e)
+			return False
+
+	def toggle_play(self):
+		self.playing = not self.playing
+		self.player.pause = not self.player.pause
 
 	def pause(self):
 		self.state = 2
