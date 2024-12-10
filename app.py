@@ -18,6 +18,7 @@ def make_response(msg:str="OK", status:bool=True, extras={}):
         "msg": msg,
         "state": player.playing,
         "status": status,
+        "wnm": True if white_noise_machine else False,
         "extras": extras
     }
 
@@ -50,8 +51,11 @@ def stats():
 
 @app.route('/toggle')
 def toggle():
-    player.toggle_play()
-    return json.dumps(make_response("Success"))
+    if white_noise_machine == None:
+        player.toggle_play()
+        return json.dumps(make_response("Success"))
+    else:
+        return json.dumps(make_response("WNM running", False))
 
 @app.route('/mute')
 def mute():
@@ -75,6 +79,7 @@ def change_mode():
 @app.route('/change_video', methods=['POST'])
 def change_video():
     data = request.get_json()
+    print(data)
     video = data["video"]
     player.change_video(video)
     return json.dumps(make_response("Video changed"))
@@ -96,19 +101,29 @@ def shutdown():
 
 @app.route('/noise_machine', methods=['POST'])
 def noise_machine():
-    print("Starting")
     global white_noise_machine
-    white_noise_machine = MPVPlayer(1)
-    white_noise_machine.main()
-    start_timer(30)
-    return json.dumps(make_response("White noise machine started"))
+    if not player.playing and white_noise_machine == None:
+        white_noise_machine = MPVPlayer(1)
+        white_noise_machine.player._set_property("volume", 150)
+        white_noise_machine.main()
+        start_timer()
+        return json.dumps(make_response("White noise machine started"))
+    else:
+        return json.dumps(make_response("White noise machine could not be started, pause player first", False))
 
 @app.route('/stop_noise_machine', methods=['POST'])
 def stop_noise_machine():
     print("Stopping")
     global white_noise_machine
-    white_noise_machine.stop()
-    white_noise_machine = None
+    if white_noise_machine:
+        white_noise_machine.stop()
+        white_noise_machine = None
+        return json.dumps(make_response("White noise machine stopped"))
+    else:
+        return json.dumps(make_response("Machine not running", False))
+
+@app.route('/screenshot', methods=['POST'])
+def screenshot():
     return json.dumps(make_response("White noise machine stopped"))
 
 if __name__ == '__main__':
