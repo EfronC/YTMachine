@@ -47,6 +47,7 @@ def stats():
         "muted": player.muted,
         "video": player.video,
         "mode": player.mode,
+        "thread_health": player.is_alive(),
         "url": player.url}))
 
 @app.route('/toggle')

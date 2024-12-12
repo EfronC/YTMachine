@@ -23,17 +23,18 @@ class Player:
 	def get_video_stream(self):
 		try:
 			data = self.read_json("data.json")
-			url = data.get("video_url", False)
+			#url = data.get("permanent_url", False)
+			url = self.get_video_id(data["permanent_url"])
 			if not url:
-				print("Not an URL. Getting real URL...")
-				url = self.get_video_id(data["permanent_url"])
-				if url:
-					data["video_url"] = url
-					self.write_json(data, "data.json")
-				else:
-					data["video_url"] = ""
-					self.write_json(data, "data.json")
-					raise Exception("Channel not on Live!!!")
+				# print("Not an URL. Getting real URL...")
+				# url = self.get_video_id(data["permanent_url"])
+				# if url:
+				# 	data["video_url"] = url
+				# 	self.write_json(data, "data.json")
+				# else:
+				# 	data["video_url"] = ""
+				# 	self.write_json(data, "data.json")
+				raise Exception("Channel not on Live!!!")
 			return url
 		except Exception as e:
 			print(e)
@@ -95,8 +96,11 @@ class MPVPlayer(Player, threading.Thread):
 	def run(self):
 		self.state = 1
 		if self.mode == 0:
-			self.player.play(self.url)
-			self.player.wait_for_playback()
+			if self.url:
+				self.player.play(self.url)
+				self.player.wait_for_playback()
+			else:
+				raise Exception("Problem fetching URL")
 		else:
 			self.player.loop = True
 			self.player.play(self.video)
