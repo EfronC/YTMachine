@@ -65,7 +65,10 @@ def mute():
 
 @app.route('/reload')
 def reload():
-    player.reload_video()
+    global player
+    player.stop()
+    player = MPVPlayer()
+    player.main()
     return json.dumps(make_response("Video reloaded"))
 
 @app.route('/change_mode')

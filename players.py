@@ -85,12 +85,12 @@ class MPVPlayer(Player, threading.Thread):
 		super().__init__()
 		threading.Thread.__init__(self)
 		self.stopped = threading.Event()
-		self.player = mpv.MPV(video=False, ytdl=True)
+		self.player = mpv.MPV(video=False, ytdl=True, cache=True, cache_secs=1, pause=True)
 		self.url = self.get_video_stream()
 		self.mode = mode # 0 - Stream, 1 - Local
 		self.video = video
 		self.player._set_property("volume", 100)
-		self.playing = True
+		self.playing = False
 		self.muted = False
 
 	def run(self):
@@ -127,6 +127,7 @@ class MPVPlayer(Player, threading.Thread):
 	def reload_stream(self):
 		try:
 			print("Reloading video...")
+			self.player.stop()
 			playurl = self.get_video_stream()
 			self.url = playurl
 			if playurl:
