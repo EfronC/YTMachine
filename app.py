@@ -110,6 +110,7 @@ def noise_machine():
         white_noise_machine = MPVPlayer(1)
         white_noise_machine.player._set_property("volume", 150)
         white_noise_machine.main()
+        white_noise_machine.toggle_play()
         start_timer()
         return json.dumps(make_response("White noise machine started"))
     else:
