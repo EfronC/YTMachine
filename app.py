@@ -3,13 +3,17 @@
 import os
 import signal
 import json
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import threading
 from players import MPVPlayer
+from screenshot import get_screenshot
 
 app = Flask(__name__)
 player = MPVPlayer()
 player.main()
+
+SONGS = {}
+CURRENT_SONG = "./songs/Minecraft_Sweden.mp3"
 
 white_noise_machine = None
 
@@ -19,7 +23,7 @@ def make_response(msg:str="OK", status:bool=True, extras={}):
         "state": player.playing,
         "status": status,
         "wnm": True if white_noise_machine else False,
-        "extras": extras
+        "data": extras
     }
 
 def terminate_wnm():
@@ -32,17 +36,41 @@ def start_timer(timer=7200.0):
     threading.Timer(timer, terminate_wnm).start()
     return True
 
+def update_video_list() -> bool:
+    try:
+        global SONGS
+        SONGS = {}
+        for i in os.listdir("./songs"):
+            key = i.split(".")[0]
+            SONGS[key] = i
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+def reload_player(mode: int, video: str = "./songs/Minecraft_Sweden.mp3") -> bool:
+    try:
+        global player
+
+        player.stop()
+        player = MPVPlayer(mode, video)
+        player.main()
+        player.toggle_play()
+    except Exception as e:
+        raise e
+
 @app.route('/')
 def index():
     return "<h1>Hello</h1><p>World!</p>"
 
 @app.route('/hello')
 def hello():
-    return json.dumps(make_response("Running"))
+    return jsonify(make_response("Running"))
 
 @app.route('/stats')
 def stats():
-    return json.dumps(make_response(extras={
+    update_video_list()
+    return jsonify(make_response(extras={
         "playing": player.playing, 
         "muted": player.muted,
         "video": player.video,
@@ -54,14 +82,14 @@ def stats():
 def toggle():
     if white_noise_machine == None:
         player.toggle_play()
-        return json.dumps(make_response("Success"))
+        return jsonify(make_response("Success"))
     else:
-        return json.dumps(make_response("WNM running", False))
+        return jsonify(make_response("WNM running", False))
 
 @app.route('/mute')
 def mute():
     player.toggle_mute()
-    return json.dumps(make_response("Success"))
+    return jsonify(make_response("Success"))
 
 @app.route('/reload')
 def reload():
@@ -69,52 +97,56 @@ def reload():
     player.stop()
     player = MPVPlayer()
     player.main()
-    return json.dumps(make_response("Video reloaded"))
+    return jsonify(make_response("Video reloaded"))
 
 @app.route('/change_mode')
 def change_mode():
     if player.mode == 0:
-        mode = 1
+        reload_player(1)
     else:
-        mode = 0
-    player.change_mode(mode)
-    return json.dumps(make_response("Mode changed"))
+        reload_player(0)
+    return jsonify(make_response("Mode changed"))
 
 @app.route('/change_video', methods=['POST'])
 def change_video():
-    data = request.get_json()
-    print(data)
-    video = data["video"]
-    player.change_video(video)
-    return json.dumps(make_response("Video changed"))
+    try:
+        data = request.get_json()
+        if data["mode"] == 1:
+            global CURRENT_SONG
+            global white_noise_machine
+            video = data["video"]
+            CURRENT_SONG = "./songs/"+SONGS[video]
+        else:
+            video = data["video"]
+            player.update_permanent_url(video)
+            reload_player(0)
+    except Exception as e:
+        print(e)
+    return jsonify(make_response("Video changed"))
 
-@app.route('/purl')
-def change_purl():
-    npurl = request.args.get("permanent_url", False)
-    if npurl:
-        player.update_permanent_url(npurl)
-    return json.dumps(make_response("Permanent URL updated"))
+@app.route('/list_videos', methods=['GET'])
+def list_videos():
+    return jsonify(make_response("Videos", True, SONGS))
 
 @app.route('/shutdown')
 def shutdown():
     print("Shutting down gracefully...")
-    if player.state != 0:
-        player.stop()
+    player.stop()
     os.kill(os.getpid(), signal.SIGINT)
-    return json.dumps(make_response("Exited"))
+    return jsonify(make_response("Exited"))
 
 @app.route('/noise_machine', methods=['POST'])
 def noise_machine():
     global white_noise_machine
     if not player.playing and white_noise_machine == None:
-        white_noise_machine = MPVPlayer(1)
+        white_noise_machine = MPVPlayer(1, video=CURRENT_SONG)
         white_noise_machine.player._set_property("volume", 150)
         white_noise_machine.main()
         white_noise_machine.toggle_play()
         start_timer()
-        return json.dumps(make_response("White noise machine started"))
+        return jsonify(make_response("White noise machine started"))
     else:
-        return json.dumps(make_response("White noise machine could not be started, pause player first", False))
+        return jsonify(make_response("White noise machine could not be started, pause player first", False))
 
 @app.route('/stop_noise_machine', methods=['POST'])
 def stop_noise_machine():
@@ -123,13 +155,25 @@ def stop_noise_machine():
     if white_noise_machine:
         white_noise_machine.stop()
         white_noise_machine = None
-        return json.dumps(make_response("White noise machine stopped"))
+        return jsonify(make_response("White noise machine stopped"))
     else:
-        return json.dumps(make_response("Machine not running", False))
+        return jsonify(make_response("Machine not running", False))
 
-@app.route('/screenshot', methods=['POST'])
+@app.route('/current_nm_song')
+def current_nm_song():
+    global white_noise_machine
+    if white_noise_machine:
+        return jsonify(make_response(white_noise_machine.video.split("/")[-1]))
+    else:
+        return jsonify(make_response("Machine not running", False))
+
+@app.route('/screenshot', methods=['GET'])
 def screenshot():
-    return json.dumps(make_response("White noise machine stopped"))
+    screenshot = get_screenshot(player.url)
+    return jsonify(make_response("Success", True, {
+        "screenshot": screenshot
+        }))
 
 if __name__ == '__main__':
+    update_video_list()
     app.run(host='0.0.0.0', port=5000, threaded=True)

@@ -85,7 +85,7 @@ class MPVPlayer(Player, threading.Thread):
 		super().__init__()
 		threading.Thread.__init__(self)
 		self.stopped = threading.Event()
-		self.player = mpv.MPV(video=False, ytdl=True, cache=True, cache_secs=1, pause=True)
+		self.player = mpv.MPV(video=False, ytdl=True, cache=True, cache_secs=1, pause=True, ytdl_format="bestaudio/best")
 		self.url = self.get_video_stream()
 		self.mode = mode # 0 - Stream, 1 - Local
 		self.video = video
@@ -109,7 +109,6 @@ class MPVPlayer(Player, threading.Thread):
 	def change_mode(self, mode):
 		try:
 			self.mode = mode
-			self.reload_video()
 			return True
 		except Exception as e:
 			print(e)
@@ -118,44 +117,7 @@ class MPVPlayer(Player, threading.Thread):
 	def change_video(self, video):
 		try:
 			self.video = video
-			self.reload_video()
 			return True
-		except Exception as e:
-			print(e)
-			return False
-
-	def reload_stream(self):
-		try:
-			print("Reloading video...")
-			self.player.stop()
-			playurl = self.get_video_stream()
-			self.url = playurl
-			if playurl:
-				self.player.play(self.url)
-				self.player.wait_for_playback()
-				return True
-			return False
-		except Exception as e:
-			print(e)
-			return False
-
-	def reload_local(self):
-		try:
-			self.player.loop = True
-			self.player.play(self.video)
-			self.player.wait_until_playing()
-			return True
-		except Exception as e:
-			print(e)
-			return False
-
-	def reload_video(self):
-		try:
-			print("Reloading video...")
-			if self.mode == 0:
-				return self.reload_stream()
-			else:
-				return self.reload_local()
 		except Exception as e:
 			print(e)
 			return False
