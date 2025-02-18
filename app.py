@@ -167,11 +167,12 @@ def current_nm_song():
     else:
         return jsonify(make_response("Machine not running", False))
 
-@app.route('/screenshot', methods=['GET'])
-def screenshot():
-    screenshot = get_screenshot(player.url)
+@app.route('/video_id', methods=['GET'])
+def video_id():
+    url = player.get_video_id(player.url)
+    video_id = url.split("?")[1].split("=")[1]
     return jsonify(make_response("Success", True, {
-        "screenshot": screenshot
+        "video_id": video_id
         }))
 
 if __name__ == '__main__':
