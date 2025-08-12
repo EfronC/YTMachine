@@ -3,6 +3,7 @@ import json
 import requests
 from bs4 import BeautifulSoup
 import mpv
+import time
 
 class Player:
 	def __init__(self):
@@ -87,7 +88,7 @@ class MPVPlayer(Player, threading.Thread):
 		self.stopped = threading.Event()
 		self.player = mpv.MPV(video=False, ytdl=True, cache=True, cache_secs=1, pause=True, ytdl_format="bestaudio/best")
 		self.url = self.get_video_stream()
-		self.mode = mode # 0 - Stream, 1 - Local
+		self.mode = mode  # 0 - Stream, 1 - Local
 		self.video = video
 		self.player._set_property("volume", 100)
 		self.playing = False
@@ -95,16 +96,25 @@ class MPVPlayer(Player, threading.Thread):
 
 	def run(self):
 		self.state = 1
-		if self.mode == 0:
-			if self.url:
-				self.player.play(self.url)
-				self.player.wait_for_playback()
-			else:
-				raise Exception("Problem fetching URL")
-		else:
-			self.player.loop = True
-			self.player.play(self.video)
-			self.player.wait_until_playing()
+		while not self.stopped.is_set():
+			try:
+				if self.mode == 0:
+					self.url = self.get_video_stream()
+					if self.url:
+						print(f"Starting stream: {self.url}")
+						self.player.play(self.url)
+						self.player.wait_for_playback()
+					else:
+						raise Exception("Problem fetching URL")
+				else:
+					self.player.loop = True
+					self.player.play(self.video)
+					self.player.wait_until_playing()
+
+			except Exception as e:
+				print(f"[MPVPlayer Error] {e}")
+				time.sleep(5)  # wait before retry
+				print("Retrying playback...")
 
 	def change_mode(self, mode):
 		try:
