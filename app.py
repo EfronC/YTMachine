@@ -5,7 +5,7 @@ import signal
 import json
 from flask import Flask, request, jsonify
 import threading
-from players import MPVPlayer
+from players import MPVPlayer, WNMPlayer
 from screenshot import get_screenshot
 
 app = Flask(__name__)
@@ -139,7 +139,7 @@ def shutdown():
 def noise_machine():
     global white_noise_machine
     if not player.playing and white_noise_machine == None:
-        white_noise_machine = MPVPlayer(1, video=CURRENT_SONG)
+        white_noise_machine = WNMPlayer(video=CURRENT_SONG)
         white_noise_machine.player._set_property("volume", 150)
         white_noise_machine.main()
         white_noise_machine.toggle_play()
