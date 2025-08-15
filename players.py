@@ -103,7 +103,7 @@ class MPVPlayer(Player, threading.Thread):
         # Attach event listener for errors and stream end
         @self.player.event_callback("end-file")
         def on_end_file(event):
-        	log_error(f"MPV playback error: Error - {str(event.error)}, EventId - {str(event.event_id.value)}")
+            log_error(f"MPV playback error: Error - {str(event.error)}, EventId - {str(event.event_id.value)}")
             self.reconnect()
 
     def run(self):
@@ -182,56 +182,56 @@ class MPVPlayer(Player, threading.Thread):
 
 
 class WNMPlayer(Player, threading.Thread):
-	def __init__(self, video="./songs/Minecraft_Sweden.mp3"):
-		super().__init__()
-		threading.Thread.__init__(self)
-		self.stopped = threading.Event()
-		self.player = mpv.MPV(video=False, cache=True, cache_secs=1, pause=True)
-		self.url = self.get_video_stream()
-		self.video = video
-		self.player._set_property("volume", 100)
-		self.playing = False
-		self.muted = False
+    def __init__(self, video="./songs/Minecraft_Sweden.mp3"):
+        super().__init__()
+        threading.Thread.__init__(self)
+        self.stopped = threading.Event()
+        self.player = mpv.MPV(video=False, cache=True, cache_secs=1, pause=True)
+        self.url = self.get_video_stream()
+        self.video = video
+        self.player._set_property("volume", 100)
+        self.playing = False
+        self.muted = False
 
-	def run(self):
-		self.state = 1
-		self.player.loop = True
-		self.player.play(self.video)
-		self.player.wait_until_playing()
+    def run(self):
+        self.state = 1
+        self.player.loop = True
+        self.player.play(self.video)
+        self.player.wait_until_playing()
 
-	def change_video(self, video):
-		try:
-			self.video = video
-			return True
-		except Exception as e:
-			print(e)
-			return False
+    def change_video(self, video):
+        try:
+            self.video = video
+            return True
+        except Exception as e:
+            print(e)
+            return False
 
-	def toggle_play(self):
-		self.playing = not self.playing
-		self.player.pause = not self.player.pause
+    def toggle_play(self):
+        self.playing = not self.playing
+        self.player.pause = not self.player.pause
 
-	def toggle_mute(self):
-		if self.muted:
-			self.player._set_property("volume", 100)
-		else:
-			self.player._set_property("volume", 0)
-		self.muted = not self.muted
+    def toggle_mute(self):
+        if self.muted:
+            self.player._set_property("volume", 100)
+        else:
+            self.player._set_property("volume", 0)
+        self.muted = not self.muted
 
-	def pause(self):
-		self.state = 2
-		self.player.pause = True
+    def pause(self):
+        self.state = 2
+        self.player.pause = True
 
-	def play(self):
-		self.state = 1
-		self.player.pause = False
+    def play(self):
+        self.state = 1
+        self.player.pause = False
 
-	def stop(self):
-		self.state = 0
-		self.stopped.set()
-		if self.player:
-			self.player.terminate()
+    def stop(self):
+        self.state = 0
+        self.stopped.set()
+        if self.player:
+            self.player.terminate()
 
-	def main(self):
-		self.start()
-		return True
+    def main(self):
+        self.start()
+        return True
