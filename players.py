@@ -103,12 +103,9 @@ class MPVPlayer(Player, threading.Thread):
         # Attach event listener for errors and stream end
         @self.player.event_callback("end-file")
         def on_end_file(event):
-            reason = event.get('reason', None)
-            error = event.get('error', None)
-            if error:
-                log_error(f"MPV playback error: {error}")
-            else:
-                log_error(f"Playback ended, reason: {reason}")
+        	event_dict = event.as_dict()
+
+        	log_error(f"MPV playback error: {str(event_dict['error'])}")
             self.reconnect()
 
     def run(self):
