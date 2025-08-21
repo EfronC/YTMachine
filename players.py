@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup
 import mpv
 import time
 from datetime import datetime
+import os
+from logger import logger
 
 LOG_FILE = "player_errors.log"
 
@@ -15,6 +17,12 @@ def log_error(message: str):
         f.write(f"[{timestamp}] {message}\n")
     print(message)  # Still print to console
 
+def log_MPV_message(level: str, prefix: str, text: str):
+    # timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # with open(LOG_FILE, "a", encoding="utf-8") as f:
+    #     f.write(f"[{timestamp}]({level}) {prefix}: {text[:-1]}\n")
+    msg = f"({level}) {prefix}: {text.rstrip()}"
+    logger.error(msg)
 
 class Player:
     def __init__(self):
@@ -91,7 +99,7 @@ class MPVPlayer(Player, threading.Thread):
         self.stopped = threading.Event()
         self.player = mpv.MPV(
             video=False, ytdl=True, cache=False, cache_secs=1, pause=True, 
-            ytdl_format="bestaudio/best"
+            ytdl_format="bestaudio/best", log_handler=log_MPV_message
         )
         self.url = self.get_video_stream()
         self.mode = mode
@@ -103,7 +111,6 @@ class MPVPlayer(Player, threading.Thread):
         # Attach event listener for errors and stream end
         @self.player.event_callback("end-file")
         def on_end_file(event):
-            log_error(f"MPV playback error: Error - {str(event.error)}, EventId - {str(event.event_id.value)}")
             self.reconnect()
 
     def run(self):
