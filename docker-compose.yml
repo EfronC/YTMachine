@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  flask_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+      - /run/user/1000/pulse/native:/run/user/1000/pulse/native
+      - ~/.config/pulse/cookie:/root/.config/pulse/cookie
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native  # Set PulseAudio server
+    devices:
+      - "/dev/snd:/dev/snd"  # Share sound devices
+    ipc: host
