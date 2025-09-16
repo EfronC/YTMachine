@@ -7,6 +7,7 @@ from flask import Flask, request, jsonify
 import threading
 from players import MPVPlayer, WNMPlayer
 from screenshot import get_screenshot
+from utils import tail_log
 
 app = Flask(__name__)
 player = MPVPlayer()
@@ -173,6 +174,15 @@ def video_id():
     video_id = url.split("?")[1].split("=")[1]
     return jsonify(make_response("Success", True, {
         "video_id": video_id
+        }))
+
+@app.route('/log', methods=['GET'])
+def logs():
+    log_file = "logs/app.log"
+    last_lines = tail_log(log_file, 50)
+
+    return jsonify(make_response("Success", True, {
+        "logs": last_lines
         }))
 
 if __name__ == '__main__':
