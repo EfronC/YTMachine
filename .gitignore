@@ -3,3 +3,4 @@ __pycache__/
 songs/
 player_errors.log
 logs/
+playlists/*

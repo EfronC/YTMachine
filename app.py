@@ -5,7 +5,7 @@ import signal
 import json
 from flask import Flask, request, jsonify
 import threading
-from players import MPVPlayer, WNMPlayer
+from players import MPVPlayer, WNMPlayer, LocalPlayer, update_playlist
 from screenshot import get_screenshot
 from utils import tail_log
 
@@ -17,6 +17,7 @@ SONGS = {}
 CURRENT_SONG = "./songs/Minecraft_Sweden.mp3"
 
 white_noise_machine = None
+update_playlist()
 
 def make_response(msg:str="OK", status:bool=True, extras={}):
     return {
@@ -52,11 +53,15 @@ def update_video_list() -> bool:
 def reload_player(mode: int, video: str = "./songs/Minecraft_Sweden.mp3") -> bool:
     try:
         global player
-
         player.stop()
-        player = MPVPlayer(mode, video)
+        if mode == 0:
+            player = MPVPlayer(mode, video)
+        else:
+            player = LocalPlayer()
         player.main()
         player.toggle_play()
+
+
     except Exception as e:
         raise e
 
@@ -107,6 +112,11 @@ def change_mode():
     else:
         reload_player(0)
     return jsonify(make_response("Mode changed"))
+
+@app.route('/current_song')
+def current_song():
+    song = player.current_song
+    return jsonify(make_response(song))
 
 @app.route('/change_video', methods=['POST'])
 def change_video():

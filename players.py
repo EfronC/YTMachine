@@ -24,11 +24,53 @@ def log_MPV_message(level: str, prefix: str, text: str):
     msg = f"({level}) {prefix}: {text.rstrip()}"
     logger.error(msg)
 
+def update_playlist(root_folder = "./playlists/"):
+    for folder in os.listdir(root_folder):
+        print("Start")
+        mp3_files = ""
+        current_playlist = os.path.join(root_folder, folder)
+
+        build_master_m3u8(current_playlist, "playlist.m3u8")
+    return True
+
+def build_master_m3u8(
+    playlists_dir: str="./playlists/Master",
+    output_name: str="playlist.m3u8"
+) -> bool:
+    mp3_files = []
+
+    playlists_dir = os.path.abspath(playlists_dir)
+    output_path = os.path.join(playlists_dir, output_name)
+
+    # Walk through all subfolders
+    for root, _, files in os.walk(playlists_dir):
+        for file in files:
+            if file.lower().endswith(".mp3"):
+                full_path = os.path.join(root, file)
+
+                # Make paths relative to the playlist file location
+                relative_path = os.path.relpath(full_path, playlists_dir)
+                mp3_files.append(relative_path)
+    mp3_files.sort()
+
+    # Write M3U8
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write("#EXTM3U\n")
+        for path in mp3_files:
+            f.write(path.replace(os.sep, "/") + "\n")
+
+    return True
+
 class Player:
     def __init__(self):
         self.state = 0
         self.player = None
         self.url = None
+        self.mode = None
+        self.video = None
+        self.playing = None
+        self.muted = None
+        self.current_song = ""
 
     def update_permanent_url(self, url: str):
         try:
@@ -242,3 +284,82 @@ class WNMPlayer(Player, threading.Thread):
     def main(self):
         self.start()
         return True
+
+class LocalPlayer(Player, threading.Thread):
+    def __init__(self, folder=None):
+        super().__init__()
+        threading.Thread.__init__(self)
+        self.stopped = threading.Event()
+        self.player = mpv.MPV(video=False, cache=True, cache_secs=1, pause=True, shuffle=True)
+        self.player._set_property("volume", 100)
+        self.playing = False
+        self.muted = False
+        self.current_song = ""
+
+        default_playlist = self.get_default_playlist_folder()
+        self.folder = folder if folder else default_playlist
+
+        @self.player.event_callback("end-file")
+        def on_end_file(event):
+            if not self.stopped.is_set():
+                if self.player.playlist_pos == self.player.playlist[-1]["id"]:
+                    print("Playlist finished — reshuffling")
+                    self.player.playlist_shuffle()
+
+        @self.player.event_callback("start-file")
+        def on_start_file(event):
+            """
+            Fired after each track starts.
+            """
+            if not self.stopped.is_set():
+                self.current_song = " ".join(self.player.filename.split(".")[:-1])
+
+    def run(self):
+        self.state = 1
+        self.build_and_play_playlist()
+
+        try:
+            while not self.stopped.is_set():
+                time.sleep(0.5)
+        finally:
+            self.player.terminate()
+            self.player = None
+            print("MPV player stopped")
+
+    def toggle_play(self):
+        self.playing = not self.playing
+        self.player.pause = not self.player.pause
+
+    def toggle_mute(self):
+        if self.muted:
+            self.player._set_property("volume", 100)
+        else:
+            self.player._set_property("volume", 0)
+        self.muted = not self.muted
+
+    def pause(self):
+        self.state = 2
+        self.player.pause = True
+
+    def play(self):
+        self.state = 1
+        self.player.pause = False
+
+    def stop(self):
+        self.state = 0
+        self.stopped.set()
+        if self.player:
+            self.player.terminate()
+
+    def main(self):
+        self.start()
+        return True
+
+    def build_and_play_playlist(self):
+        self.player.loadlist(os.path.join(self.folder, "playlist.m3u8"))
+        self.player.loop_playlist = 'inf'
+        self.player.playlist_pos = 0
+
+    def get_default_playlist_folder(self):
+        data = self.read_json()
+        return data["playlist"]
