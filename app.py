@@ -17,7 +17,6 @@ SONGS = {}
 CURRENT_SONG = "./songs/Minecraft_Sweden.mp3"
 
 white_noise_machine = None
-update_playlist()
 
 def make_response(msg:str="OK", status:bool=True, extras={}):
     return {
@@ -194,6 +193,12 @@ def logs():
     return jsonify(make_response("Success", True, {
         "logs": last_lines
         }))
+
+@app.route('/update_playlist', methods=['GET'])
+def update_playlists():
+    update_playlist()
+
+    return jsonify(make_response("Success", True, {}))
 
 if __name__ == '__main__':
     update_video_list()

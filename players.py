@@ -141,7 +141,7 @@ class MPVPlayer(Player, threading.Thread):
         self.stopped = threading.Event()
         self.player = mpv.MPV(
             video=False, ytdl=True, cache=False, cache_secs=1, pause=True, 
-            ytdl_format="bestaudio", log_handler=log_MPV_message
+            ytdl_format="best", log_handler=log_MPV_message
         )
         self.url = self.get_video_stream()
         self.mode = mode
