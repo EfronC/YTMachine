@@ -75,11 +75,12 @@ def hello():
 @app.route('/stats')
 def stats():
     update_video_list()
+    mode = 0 if type(player) is MPVPlayer else 1
     return jsonify(make_response(extras={
         "playing": player.playing, 
         "muted": player.muted,
         "video": player.video,
-        "mode": player.mode,
+        "mode": mode,
         "thread_health": player.is_alive(),
         "url": player.url}))
 
