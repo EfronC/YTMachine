@@ -71,6 +71,7 @@ class Player:
         self.playing = None
         self.muted = None
         self.current_song = ""
+        self.folder = ""
 
     def update_permanent_url(self, url: str):
         try:
@@ -350,6 +351,12 @@ class LocalPlayer(Player, threading.Thread):
         self.stopped.set()
         if self.player:
             self.player.terminate()
+
+    def next(self):
+        self.player.playlist_next()
+
+    def prev(self):
+        self.player.playlist_prev()
 
     def main(self):
         self.start()

@@ -16,6 +16,9 @@ player.main()
 SONGS = {}
 CURRENT_SONG = "./songs/Minecraft_Sweden.mp3"
 
+PLAYLISTS = {}
+CURRENT_PLAYLIST = "Master"
+
 white_noise_machine = None
 
 def make_response(msg:str="OK", status:bool=True, extras={}):
@@ -49,14 +52,30 @@ def update_video_list() -> bool:
         print(e)
         return False
 
-def reload_player(mode: int, video: str = "./songs/Minecraft_Sweden.mp3") -> bool:
+def update_playlist_list() -> bool:
+    try:
+        global PLAYLISTS
+        PLAYLISTS = {}
+        plists = [
+            name
+            for name in os.listdir("./playlists")
+            if os.path.isdir(os.path.join("./playlists", name))
+        ]
+        for i in plists:
+            PLAYLISTS[i] = os.path.join("./playlists", i)
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+def reload_player(mode: int, video: str = "./songs/Minecraft_Sweden.mp3", playlist: str = None) -> bool:
     try:
         global player
         player.stop()
         if mode == 0:
             player = MPVPlayer(mode, video)
         else:
-            player = LocalPlayer()
+            player = LocalPlayer(playlist)
         player.main()
         player.toggle_play()
 
@@ -64,13 +83,17 @@ def reload_player(mode: int, video: str = "./songs/Minecraft_Sweden.mp3") -> boo
     except Exception as e:
         raise e
 
+def check_player_type():
+    return 0 if type(player) is MPVPlayer else 1
+
 @app.route('/')
 def index():
     return "<h1>Hello</h1><p>World!</p>"
 
 @app.route('/hello')
 def hello():
-    return jsonify(make_response("Running"))
+    mode = check_player_type()
+    return jsonify(make_response("Running", extras={"mode":mode}))
 
 @app.route('/stats')
 def stats():
@@ -118,6 +141,31 @@ def current_song():
     song = player.current_song
     return jsonify(make_response(song))
 
+@app.route('/current_playlist')
+def current_playlist():
+    playlist = player.folder.split("/")[-1]
+    return jsonify(make_response(playlist))
+
+@app.route('/change_song', methods=['POST'])
+def change_song():
+    mode = check_player_type()
+    if mode:
+        data = request.get_json()
+        if int(data["action"]) == 0:
+            player.prev()
+        else:
+            player.next()
+    return jsonify(make_response("OK"))
+
+@app.route('/change_playlist', methods=['POST'])
+def change_playlist():
+    mode = check_player_type()
+    if mode:
+        data = request.get_json()
+        playlist = PLAYLISTS[data["playlist"]]
+        reload_player(1, playlist=playlist)
+    return jsonify(make_response("OK"))
+
 @app.route('/change_video', methods=['POST'])
 def change_video():
     try:
@@ -138,6 +186,10 @@ def change_video():
 @app.route('/list_videos', methods=['GET'])
 def list_videos():
     return jsonify(make_response("Videos", True, SONGS))
+
+@app.route('/list_playlists', methods=['GET'])
+def list_playlists():
+    return jsonify(make_response("Playlists", True, PLAYLISTS))
 
 @app.route('/shutdown')
 def shutdown():
@@ -203,4 +255,5 @@ def update_playlists():
 
 if __name__ == '__main__':
     update_video_list()
+    update_playlist_list()
     app.run(host='0.0.0.0', port=5000, threaded=True)
