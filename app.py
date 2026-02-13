@@ -3,10 +3,11 @@
 import os
 import signal
 import json
+import glob
 from flask import Flask, request, jsonify
 import threading
-from players import MPVPlayer, WNMPlayer, LocalPlayer, update_playlist
-from screenshot import get_screenshot
+
+from players import MPVPlayer, WNMPlayer, LocalPlayer, update_playlist, add_to_favorites_playlist, remove_from_favorites_playlist
 from utils import tail_log
 
 app = Flask(__name__)
@@ -59,10 +60,10 @@ def update_playlist_list() -> bool:
         plists = [
             name
             for name in os.listdir("./playlists")
-            if os.path.isdir(os.path.join("./playlists", name))
+            if name.endswith(".m3u8")
         ]
         for i in plists:
-            PLAYLISTS[i] = os.path.join("./playlists", i)
+            PLAYLISTS[i.split(".")[0]] = os.path.join("./playlists", i)
         return True
     except Exception as e:
         print(e)
@@ -247,9 +248,21 @@ def logs():
         "logs": last_lines
         }))
 
-@app.route('/update_playlist', methods=['GET'])
+@app.route('/update_playlists', methods=['GET'])
 def update_playlists():
     update_playlist()
+
+    return jsonify(make_response("Success", True, {}))
+
+@app.route('/add_song_playlist', methods=['GET'])
+def add_song_playlist():
+    add_to_favorites_playlist(player.current_song_path)
+
+    return jsonify(make_response("Success", True, {}))
+
+@app.route('/remove_song_playlist', methods=['GET'])
+def remove_song_playlist():
+    remove_from_favorites_playlist(player.current_song_path)
 
     return jsonify(make_response("Success", True, {}))
 

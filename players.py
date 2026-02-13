@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 import os
 from logger import logger
+from utils import add_song, add_songs, remove_song, create_playlist, PLAYLIST_DIR
 
 LOG_FILE = "player_errors.log"
 
@@ -26,38 +27,56 @@ def log_MPV_message(level: str, prefix: str, text: str):
 
 def update_playlist(root_folder = "./playlists/"):
     for folder in os.listdir(root_folder):
-        print("Start")
-        mp3_files = ""
         current_playlist = os.path.join(root_folder, folder)
-
-        build_master_m3u8(current_playlist, "playlist.m3u8")
+        if os.path.isdir(current_playlist):
+            build_master_m3u8(current_playlist, folder+".m3u8")
     return True
 
 def build_master_m3u8(
-    playlists_dir: str="./playlists/Master",
+    playlist_dir: str="./playlists/Master",
     output_name: str="playlist.m3u8"
 ) -> bool:
     mp3_files = []
 
-    playlists_dir = os.path.abspath(playlists_dir)
-    output_path = os.path.join(playlists_dir, output_name)
+    playlist_dir = os.path.abspath(playlist_dir)
+    root_dir = os.sep.join(playlist_dir.split("/")[:-1])
+    output_path = os.path.join("./playlists", output_name)
 
     # Walk through all subfolders
-    for root, _, files in os.walk(playlists_dir):
+    for root, _, files in os.walk(playlist_dir):
         for file in files:
             if file.lower().endswith(".mp3"):
                 full_path = os.path.join(root, file)
 
                 # Make paths relative to the playlist file location
-                relative_path = os.path.relpath(full_path, playlists_dir)
-                mp3_files.append(relative_path)
+                relative_path = os.path.relpath(full_path, root_dir)
+                mp3_files.append(relative_path.replace(os.sep, "/"))
     mp3_files.sort()
 
     # Write M3U8
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write("#EXTM3U\n")
-        for path in mp3_files:
-            f.write(path.replace(os.sep, "/") + "\n")
+    create_playlist(output_name, overwrite=True)
+    add_songs(output_name, mp3_files)
+
+    return True
+
+def add_to_favorites_playlist(song: str) -> bool:
+    playlist = "favorites.m3u8"
+
+    if not os.path.exists(os.path.join("./playlists", playlist)):
+        create_playlist(playlist)
+        add_song(playlist, song)
+    else:
+        add_song(playlist, song)
+
+    return True
+
+def remove_from_favorites_playlist(song: str):
+    playlist = "favorites.m3u8"
+
+    if not os.path.exists(os.path.join("./playlists", playlist)):
+        create_playlist(playlist)
+    else:
+        remove_song(playlist, song)
 
     return True
 
@@ -296,6 +315,7 @@ class LocalPlayer(Player, threading.Thread):
         self.playing = False
         self.muted = False
         self.current_song = ""
+        self.current_song_path = ""
 
         default_playlist = self.get_default_playlist_folder()
         self.folder = folder if folder else default_playlist
@@ -314,6 +334,7 @@ class LocalPlayer(Player, threading.Thread):
             """
             if not self.stopped.is_set():
                 self.current_song = " ".join(self.player.filename.split(".")[:-1])
+                self.current_song_path = os.path.relpath(self.player.path, PLAYLIST_DIR)
 
     def run(self):
         self.state = 1
