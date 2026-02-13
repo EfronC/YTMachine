@@ -7,7 +7,7 @@ import glob
 from flask import Flask, request, jsonify
 import threading
 
-from players import MPVPlayer, WNMPlayer, LocalPlayer, update_playlist, add_to_favorites_playlist, remove_from_favorites_playlist
+from players import MPVPlayer, WNMPlayer, LocalPlayer, update_playlist, manage_song_from_favorites_playlist
 from utils import tail_log, PLAYLIST_DIR
 
 app = Flask(__name__)
@@ -254,17 +254,16 @@ def update_playlists():
 
     return jsonify(make_response("Success", True, {}))
 
-@app.route('/add_song_playlist', methods=['GET'])
-def add_song_playlist():
-    add_to_favorites_playlist(player.current_song_path)
+@app.route('/manage_song_from_favorites', methods=['GET'])
+def manage_song_from_favorites():
+    result = manage_song_from_favorites_playlist(player.current_song_path)
 
-    return jsonify(make_response("Success", True, {}))
+    if result:
+        msg = "Song added to favorites"
+    else:
+        msg = "Song removed from favorites"
 
-@app.route('/remove_song_playlist', methods=['GET'])
-def remove_song_playlist():
-    remove_from_favorites_playlist(player.current_song_path)
-
-    return jsonify(make_response("Success", True, {}))
+    return jsonify(make_response(msg, True, {}))
 
 if __name__ == '__main__':
     update_video_list()

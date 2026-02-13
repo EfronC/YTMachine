@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 import os
 from logger import logger
-from utils import add_song, add_songs, remove_song, create_playlist, PLAYLIST_DIR
+from utils import add_song, add_songs, remove_song, song_exists, create_playlist, PLAYLIST_DIR
 
 LOG_FILE = "player_errors.log"
 
@@ -79,6 +79,19 @@ def remove_from_favorites_playlist(song: str):
         remove_song(playlist, song)
 
     return True
+
+def manage_song_from_favorites_playlist(song: str) -> bool:
+    playlist = "favorites.m3u8"
+
+    if not os.path.exists(os.path.join("./playlists", playlist)):
+        create_playlist(playlist)
+
+    if song_exists(playlist, song):
+        remove_song(playlist, song)
+        return False
+    else:
+        add_song(playlist, song)
+        return True
 
 class Player:
     def __init__(self):
