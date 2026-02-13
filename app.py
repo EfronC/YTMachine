@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify
 import threading
 
 from players import MPVPlayer, WNMPlayer, LocalPlayer, update_playlist, add_to_favorites_playlist, remove_from_favorites_playlist
-from utils import tail_log
+from utils import tail_log, PLAYLIST_DIR
 
 app = Flask(__name__)
 player = MPVPlayer()
@@ -164,7 +164,7 @@ def change_playlist():
     if mode:
         data = request.get_json()
         playlist = PLAYLISTS[data["playlist"]]
-        reload_player(1, playlist=playlist)
+        reload_player(1, playlist=data["playlist"])
     return jsonify(make_response("OK"))
 
 @app.route('/change_video', methods=['POST'])

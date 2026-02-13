@@ -306,7 +306,7 @@ class WNMPlayer(Player, threading.Thread):
         return True
 
 class LocalPlayer(Player, threading.Thread):
-    def __init__(self, folder=None):
+    def __init__(self, playlist=None):
         super().__init__()
         threading.Thread.__init__(self)
         self.stopped = threading.Event()
@@ -317,8 +317,8 @@ class LocalPlayer(Player, threading.Thread):
         self.current_song = ""
         self.current_song_path = ""
 
-        default_playlist = self.get_default_playlist_folder()
-        self.folder = folder if folder else default_playlist
+        default_playlist = self.get_default_playlist()
+        self.playlist = playlist if playlist else default_playlist
 
         @self.player.event_callback("end-file")
         def on_end_file(event):
@@ -384,10 +384,10 @@ class LocalPlayer(Player, threading.Thread):
         return True
 
     def build_and_play_playlist(self):
-        self.player.loadlist(os.path.join(self.folder, "playlist.m3u8"))
+        self.player.loadlist(os.path.join(PLAYLIST_DIR, f"{self.playlist}.m3u8"))
         self.player.loop_playlist = 'inf'
         self.player.playlist_pos = 0
 
-    def get_default_playlist_folder(self):
+    def get_default_playlist(self):
         data = self.read_json()
         return data["playlist"]
